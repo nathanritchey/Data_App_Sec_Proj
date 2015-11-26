@@ -166,3 +166,148 @@ Assume file X is split into four blocks.
   * This case breaks goal #1 because Bobby could be doing a lot of encryption on multiple blocks.
 
   * This case breaks goal #2 because there is no way Alice, Mulan, or even Bobby to know if Bobby's change was purposeful on the data in block_4 and block_5 or if that was orignally created by some one else.
+
+## Example Walkthrough
+```
+#Initial Blocks on DropBox
+#(Keys_Alice){"Shit Lord ",UUID_1}
+#(Keys_Bobby){"Poop Test ",UUID_2}
+#(Keys_Mulan){"Helloz Wor",UUID_3}
+#(Keys_Alice){"ld Do Shit",UUID_4}
+```
+File as seen by user: "Shit Lord Poop Test Helloz World Do Shit"
+
+Changes done by user: "Shit Lord Poop Tfst Super Dupe Shit Test Helloz World Do Shit"
+
+Begin Algorithm:
+```
+#0: do stuff before loop
+tmp_blocks =  "Shit Lord Poop Tfst Super Dupe Shit Test Helloz World Do Shit"
+cur_sequence = 0
+
+#Blocks Saved 
+#(Keys_Alice){"Shit Lord ",UUID_1}
+#(Keys_Bobby){"Poop Test ",UUID_2}
+#(Keys_Mulan){"Helloz Wor",UUID_3}
+#(Keys_Alice){"ld Do Shit",UUID_4}
+
+#INDEX
+#(Keys_Alice){sequence(1)}, (Keys_Alice){UUID_1, UUID_File_X}
+#(Keys_Bobby){sequence(2)}, (Keys_Bobby){UUID_2, UUID_File_X}
+#(Keys_Mulan){sequence(3)}, (Keys_Mulan){UUID_3, UUID_File_X}
+#(Keys_Alice){sequence(4)}, (Keys_Alice){UUID_4, UUID_File_X}
+
+
+#loop through old_blocks 4 times.
+
+#1 old_block -> "Shit Lord "
+	Skip (1.1) since old_block is in tmp_blocks
+	tmp_blocks_slpit = ["","Shit Lord ","Poop Tfst Super Dupe Shit Test Helloz World Do Shit"]
+	add_blocks_to_dropbox("")
+		#Nothing Happens
+	cur_sequence = 1
+	#update sequence of old_block to cur_sequence
+	tmp_blocks = "Poop Tfst Super Dupe Shit Test Helloz World Do Shit"
+
+	#Blocks Saved 
+	#(Keys_Alice){"Shit Lord ",UUID_1}
+	#(Keys_Bobby){"Poop Test ",UUID_2}
+	#(Keys_Mulan){"Helloz Wor",UUID_3}
+	#(Keys_Alice){"ld Do Shit",UUID_4}
+
+	#INDEX
+	#(Keys_Bobby){sequence(1)}, (Keys_Alice){UUID_1, UUID_File_X} // update sequence to 1 (redundant, but done anyway)
+	#(Keys_Bobby){sequence(2)}, (Keys_Bobby){UUID_2, UUID_File_X}
+	#(Keys_Mulan){sequence(3)}, (Keys_Mulan){UUID_3, UUID_File_X}
+	#(Keys_Alice){sequence(4)}, (Keys_Alice){UUID_4, UUID_File_X}
+
+#2 old_block -> "Poop Test "
+	Do (1.1) since old_block is not in tmp_blocks
+		remove_block_from_DropBox("Poop Test ") -> UUID_2
+		remove_block_from_index(UUID_2)
+
+	#Blocks Saved 
+	#(Keys_Alice){"Shit Lord ",UUID_1}
+	# -----------block with value "Poop Test " was removed
+	#(Keys_Mulan){"Helloz Wor",UUID_3}
+	#(Keys_Alice){"ld Do Shit",UUID_4}
+
+	#INDEX
+	#(Keys_Bobby){sequence(1)}, (Keys_Alice){UUID_1, UUID_File_X} // sequence update to 1, even though it was already there
+	# -----------block with UUID_2 was removed
+	#(Keys_Mulan){sequence(3)}, (Keys_Mulan){UUID_3, UUID_File_X}
+	#(Keys_Alice){sequence(4)}, (Keys_Alice){UUID_4, UUID_File_X}
+
+#3 old_block -> "Helloz Wor"
+	Skip (1.1) since old_block is in tmp_blocks
+	tmp_blocks_slpit = ["Poop Tfst Super Dupe Shit Test ","Helloz Wor","ld Do Shit"]
+	add_blocks_to_dropbox("")
+		cur_sequence = 2
+		#add block "Poop Tfst "
+		cur_sequence = 3
+		#add block "Super Dupe"
+		cur_sequence = 4
+		#add block " Shit Test "
+
+
+	cur_sequence = 5
+	#update sequence of old_block to cur_sequence
+
+	tmp_blocks = "Poop Tfst Super Dupe Shit Test Helloz World Do Shit"
+
+	#Blocks Saved 
+	#(Keys_Alice){"Shit Lord ",UUID_1}
+	#(Keys_Mulan){"Helloz Wor",UUID_3}
+	#(Keys_Alice){"ld Do Shit",UUID_4}  
+	#(Keys_Bobby){"Poop Tfst ",UUID_5}  // added first
+	#(Keys_Bobby){"Super Dupe",UUID_6}  // added second
+	#(Keys_Bobby){" Shit Test ",UUID_7} // added third, notice how this one is larger
+
+	#INDEX
+	#(Keys_Bobby){sequence(1)}, (Keys_Alice){UUID_1, UUID_File_X}
+	#(Keys_Bobby){sequence(5)}, (Keys_Mulan){UUID_3, UUID_File_X} //seuqence changed, done last
+	#(Keys_Alice){sequence(4)}, (Keys_Alice){UUID_4, UUID_File_X}
+	#(Keys_Bobby){sequence(2)}, (Keys_Bobby){UUID_5, UUID_File_X} //added first
+	#(Keys_Bobby){sequence(3)}, (Keys_Bobby){UUID_6, UUID_File_X} //added second
+	#(Keys_Bobby){sequence(4)}, (Keys_Bobby){UUID_6, UUID_File_X} //added third
+
+
+#4 old_block -> "ld Do Shit"
+	Skip (1.1) since old_block is in tmp_blocks
+	tmp_blocks_slpit = ["","ld Do Shit",""]
+	add_blocks_to_dropbox("")
+		#Nothing Happens
+
+	cur_sequence = 6
+	#update sequence of old_block to cur_sequence
+	tmp_blocks = ""
+
+	#Blocks Saved 
+	#(Keys_Alice){"Shit Lord ",UUID_1}
+	#(Keys_Mulan){"Helloz Wor",UUID_3}
+	#(Keys_Alice){"ld Do Shit",UUID_4}  
+	#(Keys_Bobby){"Poop Tfst ",UUID_5}  
+	#(Keys_Bobby){"Super Dupe",UUID_6} 
+	#(Keys_Bobby){" Shit Test ",UUID_7}
+
+	#INDEX
+	#(Keys_Bobby){sequence(1)}, (Keys_Alice){UUID_1, UUID_File_X}
+	#(Keys_Bobby){sequence(5)}, (Keys_Mulan){UUID_3, UUID_File_X} 
+	#(Keys_Bobby){sequence(6)}, (Keys_Alice){UUID_4, UUID_File_X} //seuqence changed
+	#(Keys_Bobby){sequence(2)}, (Keys_Bobby){UUID_5, UUID_File_X} 
+	#(Keys_Bobby){sequence(3)}, (Keys_Bobby){UUID_6, UUID_File_X} 
+	#(Keys_Bobby){sequence(4)}, (Keys_Bobby){UUID_6, UUID_File_X} 
+
+	#end of loop
+
+#After loop
+break_blocks_on_byte_size([""]) -> blocks_to_add = [""]
+add_blocks_to_dropbox([""])
+	#does nothing
+```
+
+# Problems 
+##Problem #1: 
+(Will change this to report eventually)
+If you split file X into blocks, assign each block a UUID. These blocks will have min size of bytes which will be the key size (for cyrpto reasons). The last block will have the extra bytes [Size(X) %  Size(key)], so it will be Size(key) + (Size(X) %  Size(key)). Each block is stored on dropbox as pair <encrypted(block), hashed(block)>. Then there is an index that stores the order of these files. The issue lies where in if you edit block(x), and add data that increases the size such that (Size(d) %  Size(key)) != 0, then what will happen is that the extra bytes will become overflow into the next block. 
+
