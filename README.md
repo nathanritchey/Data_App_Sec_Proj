@@ -10,6 +10,7 @@ This algorithm should support all our block based file encryption desires.
   * Solves the issue of subsequent blocks(n+1, ...) being altered when only block(n) is altered and overruns the block size.
   * Allows for consistency and integrity for multipe users through out encrypted file blocks.
   * Adds an extra feature where we can authenticate who's updated what block.
+  * Easy to tell who was the last person to update file, check owner of INDEX sequences for the file.
 
 2. Cons:
   *  Could break if there are two blocks that are exactly the same. E.G. Bob removes block_1 (made by Alice), adds new block after block_2 (made by Alice), the new block added by Bob is equivently the same as block_1 and is exactly the correct byte size. This algorithm will then check for the first block of the old file (block_1), see that it "exists", skip block_2 since and count the block as being edited by Bob. See below for representation of this case, along with correct case.
@@ -103,6 +104,27 @@ For block in old_blocks:
 blocks_to_add = break_blocks_on_byte_size(tmp_blocks)
 add_blocks_to_dropbox(blocks_to_add)
 # adds the rest of the blocks after loop completion
+
+define check_completion(): 
+	#Checks to make sure that the write was succesful
+	#The algorithm should be safe, but this is a precautionary measure for debugging purposes
+	for index_block in INDEX
+		if (index_block.get(owner_of_sequence) == me):
+			continue
+			#Checks to make sure all INDEX sequence values have been updated by you
+		else:
+			print("Not all seuqences updated")
+			return to begining_of_algo
+		
+	if (bytes(new_file) == bytes(blocks where metadata_UUID == X):
+		continue
+		#Checks to make sure that the updated INDEX has same number of bytes as new_file
+		
+	else:
+		print("Some blocks where not delted/added to DropBox")
+		return to begining_of_algo
+			
+check_completion()
 
 ```
 ## Proof
