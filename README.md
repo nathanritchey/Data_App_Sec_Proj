@@ -130,3 +130,35 @@ To prove correctness we must show:
 3. Proof correctness #3 and #4:
   * At each step of (1). The updated index consists all blocks generated at each step since all unedited blocks must be matched by a corresponding old_block and undergo (3), and every new_block(s) added must complete (2). At each point (3) and (2) cur_sequence is incremented by one. This is done in order as through each iteration of all old_blocks old_block(n) must be added before old_block(n+1). (1.4) updates index of all edited blocks previous to index update of the matched old_block. This is done in order since the addition of blocks is done lineraly. (5) adds indexs of all remaining new edited blocks in order. Since the new file is the summation of all new blocks and matching old blocks, and these blocks are inserted in order linerally, that means each block has the correct corresponding index number.
   * Thus #3 and #4 are true.
+
+## Issue Solved
+Please check README.md for my update on the algorithm that is mentioned briefly in Step 2: Encryption of File within the Implementing a Dropbox Confidentiality ClientThe algorithm also has detailed explanation on implementation, and some rudimentary proofish stuff on correctness. The reason for this algorithm was because while tackling the issue of multiple users I realized that the worst case  (i.e. all subsequent  blocks subject to be affected by the editing of a single block) , and very possible case, would violate two goals we are trying to accomplish. Detailed explanation below as to why. Please look through the implementation and explanation to make sure that we are all (/I am)  on the same page for implementation.
+
+First off, remembering a couple of goals we  wish to accomplish.
+1. Avoid unncessary encryption of nonedited data
+2. Integrity/Authentication on all blocks for a file. This is just a bonus really, since our main focus is encryption.That being said though, if we want to maintain integrity of Bob on Alice and vice versa this is important. 
+
+  *To visualize the issues of the current algorithm take the following case into consideration. Please inform me if my understanding of the current implementation is incorrect.
+Assume file X is split into four blocks.
+    *Sig_Alice){block_1},(Sig_Alice{UUID_1}, size(N_B)
+    *Sig_Bobby){block_2},(Sig_Bobby{UUID_2}, size(N_B)
+    *Sig_Mulan){block_3},(Sig_Mulan{UUID_3}, size(N_B)
+    *Sig_Alice){block_4},(Sig_Alice{UUID_4}, size(N_B)
+
+  *Assume case where Bobby edits one letter block_2 and adds new data. He adds (N_B + 1) amount of data. So another block will be added, but the extra byte will overrun into block_3. This will cause a chain reaction on all following blocks. The blocks updated under the current algorithm would become as follows.
+    *Sig_Alice){block_1},(Sig_Alice{UUID_1}     , size(N_B)     //unchanged
+    *Sig_Bobby){block_2},(Sig_Bobby{UUID_2}     , size(N_B)     //changed
+    *Sig_Bobby){block_3},(Sig_Bobby{UUID_3}     , size(N_B)     //changed
+    *Sig_Bobby){block_4},(Sig_Bobby{UUID_4}     , size(N_B)     //changed
+    *Sig_Bobby){block_5},(Sig_Bobby{UUID_5(new)}, size(N_B + 1) //added, "fat" block
+
+  *This means that Bobby will have to encrypt and sign block_2, block_3, and block_4, and block_5 even though all he did was change a letter in block_2, and added a bit more data. The following is how we would want the new blocks in DropBox to be if our implementation was perfect (up. is updated). In this scenario we just update the file that contains the metadata for block sequencing, and add any new block UUIDs.
+    *Sig_Alice){block_1},(Sig_Alice{UUID_1(up.)}    , size(N_B)     //unchanged
+    *Sig_Bobby){block_2},(Sig_Bobby{UUID_2(up.)}    , size(N_B)     //changed
+    *Sig_Bobby){block_3},(Sig_Bobby{UUID_3(new)}    , size(N_B + 1) //added, "fat" block
+    *Sig_Mulan){block_4},(Sig_Mulan{UUID_4(up.)}    , size(N_B)     //unchanged (ex block index)
+    *Sig_Alice){block_5},(Sig_Alice{UUID_5(up.)}    , size(N_B)     //unchanged (ex block index)
+
+  *This case breaks goal #1 because Bobby could be doing a lot of encryption on multiple blocks.
+
+  *This case breaks goal #2 because there is no way Alice, Mulan, or even Bobby to know if Bobby's change was purposeful on the data in block_4 and block_5 or if that was orignally created by some one else.
